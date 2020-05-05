@@ -2,10 +2,11 @@ import multitasking # <== Remove this if not using multitasking
 import signal
 import time
 import threading
+import concurrent.futures
 
 # kill all tasks on ctrl-c
-signal.signal(signal.SIGINT, multitasking.killall)
-multitasking.set_max_threads(10)
+# signal.signal(signal.SIGINT, multitasking.killall)
+# multitasking.set_max_threads(10)
 
 def createBoard(rows):
     return [True for i in range(int((rows*(rows+1))/2))]
@@ -80,7 +81,7 @@ def testBoard(test_board, move, chain=[]):
     chain.pop()
 
 finished = 0
-@multitasking.task # <== Remove this if not using multitasking
+#@multitasking.task # <== Remove this if not using multitasking
 def startTestBoard(board, start):
     global finished
     board[start] = False
@@ -118,7 +119,6 @@ def shrink_chain(chain):
 
     elif len(output) == min_length:
         min_chains.append(output)
-    #print(f"Starting blank: {output[0]}, Steps: {len(output[1:])}, Moves:", output[1:])
 
 start = time.perf_counter()
    
@@ -135,12 +135,12 @@ valid_moves = calcValidMoves(number_of_rows)
 solved_chains = []
 
 #-------------------------- Multitasking version
-for i in range(len(start_board)):
-    print("Testing: ", i+1)
-    startTestBoard(start_board.copy(),i)
+# for i in range(len(start_board)):
+#     print("Testing: ", i+1)
+#     startTestBoard(start_board.copy(),i)
 
-while threading.active_count() > 1:
-    time.sleep(0.01)
+# while threading.active_count() > 1:
+#     time.sleep(0.01)
 #-------------------------- End multitasking version
 
 #-------------------------- Non-multitasking
@@ -149,6 +149,17 @@ while threading.active_count() > 1:
 #     startTestBoard(start_board.copy(),i)
 #-------------------------- End non-multitasking version
 
+#-------------------------- Concurrent futures
+max_workers = 10
+paramList = []
+for i in range(positions): paramList.append({ 'board': start_board.copy(), 'start':i})
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executorMain:
+    threadRuns = {executorMain.submit(startTestBoard, **params): params for params in paramList}
+    for doneThread in concurrent.futures.as_completed(threadRuns):
+        threadResult = doneThread.result()
+        print(str(threadRuns[doneThread]['start']) + ' complete')
+#-------------------------- End nConcurrent futures
 
 
 min_length = 100
