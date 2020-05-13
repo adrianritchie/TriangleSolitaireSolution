@@ -131,6 +131,7 @@ positions = len(start_board)
 
 # Moves are tuples representing (start, hop, end) positions
 valid_moves = calcValidMoves(number_of_rows)
+print(valid_moves)
 
 solved_chains = []
 
